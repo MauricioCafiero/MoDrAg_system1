@@ -1,3 +1,12 @@
+import os
+import sys
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_HERE, '..', 'code'))
+os.chdir(os.path.join(_HERE, '..', 'code'))
+for _d in ('../images', '../outputs', '../pdb_files', '../scratch', '../vault'):
+    os.makedirs(_d, exist_ok=True)
+
 from modrag_molecule_functions import *
 from modrag_property_functions import *
 

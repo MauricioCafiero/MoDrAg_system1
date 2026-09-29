@@ -6,7 +6,11 @@ step) once per query, then recombines distributions offline.
 import json
 import sys
 
-sys.path.insert(0, 'code_new')
+import os
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_HERE, '..', 'code'))
+os.chdir(os.path.join(_HERE, '..', 'code'))
 
 import numpy as np
 import input_parsing as ip

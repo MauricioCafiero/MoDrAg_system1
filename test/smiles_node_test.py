@@ -16,7 +16,12 @@ uses list inputs, so it never exercises this failure mode).
 Run:
     modrag-env/bin/python -m unittest smiles_node_test -v
 """
+import os
+import sys
 
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_HERE, '..', 'code'))
+os.chdir(os.path.join(_HERE, '..', 'code'))
 import unittest
 from unittest import mock
 

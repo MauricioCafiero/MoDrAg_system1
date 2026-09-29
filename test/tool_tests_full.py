@@ -1,5 +1,5 @@
 '''
-Test suite for the MoDrAg_sys1 tool library (code_new/).
+Test suite for the MoDrAg_sys1 tool library (code/).
 
 Base suite (fast): covers the tool nodes MoDrAg_CLI's tool_tests.py does not -
 canonical tool, similarity tool, blind-dock + dock-check wrappers (real local
@@ -11,12 +11,19 @@ runs a REAL fine-tune on the CHEMBL213 bioactives (foundation checkpoint at
 ../data/GPT_ZN305_mini.pt; a few minutes on CPU).
 
 Same verdict style (✓/✗ + summary) as MoDrAg_CLI tool_tests.py.
-Run from inside code_new/.
+Run from anywhere — the header below cd's into code/ and creates the
+runtime dirs itself.
 '''
 import os
 import shutil
 import sys
 import time
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_HERE, '..', 'code'))
+os.chdir(os.path.join(_HERE, '..', 'code'))
+for _d in ('../images', '../outputs', '../pdb_files', '../scratch', '../vault'):
+    os.makedirs(_d, exist_ok=True)
 
 import chain_tools
 from modrag_molecule_functions import (name_node, smiles_node, related_node,

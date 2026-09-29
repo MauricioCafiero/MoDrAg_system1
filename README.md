@@ -62,13 +62,18 @@ git clone https://github.com/MauricioCafiero/MoDrAg_system1.git
 cd MoDrAg_system1
 python3 -m venv .venv
 . .venv/bin/activate
-pip install -r requirements_full.txt
+pip install -r requirements.txt
 ```
 
-Then run the agent from the **repo root**:
+Then run the agent — easiest is the `modrag` shell function, which `setup_alias.sh` installs (`bash setup_alias.sh`); it cds into `code/` in a subshell so the CWD-relative writes always land right:
 ```
-.venv/bin/python modrag_cli.py
+modrag
 ```
+or directly:
+```
+.venv/bin/python code/modrag_cli.py
+```
+(from any directory — the CLI self-heals its CWD to `code/` and creates the runtime dirs on first launch).
 
 The GPT weights and tokenizer vocab needed by the generative tool ship in `data/`. The three routing models (decision model, embedding model, GLiNER NER) are pulled from the HuggingFace hub on first launch and cached in `~/.cache/huggingface/hub` — every launch after that detects the cache and runs fully offline.
 
@@ -92,18 +97,16 @@ Set `MODRAG_DEBUG=1` for full tracebacks out of the tool nodes.
 The agent keeps a full session transcript (your queries, the tools chosen, and every tool result). `memory` writes the session into `vault/`; `recall` lists what is in the vault, and `recall <date>` restores a session so its molecules, proteins, and results can be reused in new queries.
 
 ## Testing
-Two suites live in `code_new/`:
+Two suites live in `test/` — runnable from **anywhere** (each one self-configures: it adds `../code` to `sys.path`, cd's there, and creates the runtime dirs):
 
 - **Fast, offline** (no external APIs; uses the shipped model + a local blind-dock round-trip):
   ```
-  cd code_new && ../.venv/bin/python tool_tests.py
+  .venv/bin/python test/tool_tests.py
   ```
 - **Full, all 23 wired tools** — add `MODRAG_LIVE=1` to hit the live APIs (PubChem, ChEMBL, RCSB) and actually dock and fine-tune:
   ```
-  cd code_new && MODRAG_LIVE=1 ../.venv/bin/python tool_tests_full.py
+  MODRAG_LIVE=1 .venv/bin/python test/tool_tests_full.py
   ```
-
-*(run the full suite from inside `code_new/` — the tool nodes write `../outputs` relative to the code directory).*
 
 ## Benchmark
 Routing was measured on **95 real drug-design queries** (`real_queries.json`) — this is the System 1 replacement for the autoregressive router:
@@ -115,30 +118,34 @@ Routing was measured on **95 real drug-design queries** (`real_queries.json`) �
 | **Fused System 1 (18 tools)** | **0.389** | **0.705** | **0.853** |
 | Fused System 1 (21 tools) | 0.379 | 0.653 | 0.779 |
 
-Metrics: fraction of queries where the expected tool is ranked 1st; where all expected tools appear in the top 3; and in the top 5. Fusion (geometric mean of embedding score and decision-model choice score, decision weight 0.7) beats the human baseline on all three metrics at 18 tools; the work to retune the newer tools' routing descriptions back to that level is ongoing. Re-run the sweep yourself with `sweep_real.py`.
+Metrics: fraction of queries where the expected tool is ranked 1st; where all expected tools appear in the top 3; and in the top 5. Fusion (geometric mean of embedding score and decision-model choice score, decision weight 0.7) beats the human baseline on all three metrics at 18 tools; the work to retune the newer tools' routing descriptions back to that level is ongoing. Re-run the sweep yourself with `test/sweep_real.py`.
 
 ## Repo layout
 ```
-modrag_cli.py           # the command-line REPL (entry point)
-decision_layer.py       # cached System 1 decision engine
-sys1_router.py          # intake parsing → embedding + decision fusion → route()
-eval_router.py          # quick routing checks
-probe_router.py         # probe single queries through the router
-eval_real.py            # benchmark over real_queries.json
-sweep_real.py           # hyperparameter sweep for the router
-real_queries.json       # the 95-query benchmark set
-requirements_full.txt   # full dependency list
-code_new/               # the tool library (nodes) + parsing/graphs/memory
-  modrag_protein_functions.py   # docking, Uniprot, PDB, bioactives
-  modrag_molecule_functions.py  # SMILES, names, analogues, Lipinski, ...
-  modrag_property_functions.py  # molecular properties
-  modrag_task_graphs.py         # multi-tool graphs (dock_from_names, ...)
-  input_parsing.py              # tool registry: descriptions, hashes, requirements
-  chain_tools.py                # sequential-tool glue + file-path extraction
-  gpt_node.py / finetune_gpt.py # ligand generation + fine-tuning
-  modrag_memory.py              # session vault (memory/recall)
-  tool_tests.py / tool_tests_full.py  # the two test suites
-data/                   # GPT weights, tokenizer vocabularies
+setup_alias.sh           # installs the `modrag` shell function into your shell config
+requirements.txt         # full dependency list
+code/                    # the CLI + System 1 router + the tool library (nodes)
+  modrag_cli.py                  # the command-line REPL (entry point)
+  decision_layer.py              # cached System 1 decision engine
+  sys1_router.py                 # intake parsing → embedding + decision fusion → route()
+  modrag_protein_functions.py    # docking, Uniprot, PDB, bioactives
+  modrag_molecule_functions.py   # SMILES, names, analogues, Lipinski, ...
+  modrag_property_functions.py   # molecular properties
+  modrag_task_graphs.py          # multi-tool graphs (dock_from_names, ...)
+  input_parsing.py               # tool registry: descriptions, hashes, requirements
+  chain_tools.py                 # sequential-tool glue + file-path extraction
+  gpt_node.py / finetune_gpt.py  # ligand generation + fine-tuning
+  modrag_memory.py               # session vault (memory/recall)
+test/
+  eval_router.py         # quick routing checks
+  probe_router.py        # probe single queries through the router
+  eval_real.py           # benchmark over real_queries.json
+  sweep_real.py          # hyperparameter sweep for the router
+  real_queries.json      # the 95-query benchmark set
+  tool_tests.py          # fast offline suite
+  tool_tests_full.py     # full 23-tool suite (MODRAG_LIVE=1)
+  single_test.py / proteins_test.py / smiles_node_test.py  # focused node tests
+data/                    # GPT weights, tokenizer vocabularies
 ```
 
 ## How to add a function to the agent
@@ -154,11 +161,11 @@ def function_node(arg1: type, arg2: type):
   returns a_list, a_string, an_image_list
 ```
 The function can take any number of arguments but must return exactly 3: a list (can be nested), a string containing the function results in text form (shown to the user), and an image or list of images (optional — given as a list either way, `None` if none). If the function is a *graph* of other tools (like `dock_from_names`), put it in `modrag_task_graphs.py`.
-- The function can be added to *`modrag_protein_functions`, `modrag_molecule_functions`,* or *`modrag_property_functions`*. Dependencies go at the top of the file, and into `requirements_full.txt` for installation.
-- A description should be added to the ```tool_descriptions``` dictionary in `code_new/input_parsing.py`. This description is what the System 1 router embeds and fuses against the user's query — phrase it as a decision criterion for when the tool *should* be chosen (e.g. *"Use when a new molecule must be drawn from a name"*), because that is what the small decision model reads.
+- The function can be added to *`modrag_protein_functions`, `modrag_molecule_functions`,* or *`modrag_property_functions`*. Dependencies go at the top of the file, and into `requirements.txt` for installation.
+- A description should be added to the ```tool_descriptions``` dictionary in `code/input_parsing.py`. This description is what the System 1 router embeds and fuses against the user's query — phrase it as a decision criterion for when the tool *should* be chosen (e.g. *"Use when a new molecule must be drawn from a name"*), because that is what the small decision model reads.
 - The function name and argument list should be added to the ```define_tool_hash``` function in `input_parsing.py`. This hash table is used to run the selected tool.
 - The function name, argument list, and a human-readable version of the arguments should be added to the ```define_tool_reqs``` function in `input_parsing.py`. This hash table is used to check for the required data before running a tool, and for asking the user to provide any missing data.
-- If the tool should be run as a follow-up to another tool (or should trigger one), wire it into `code_new/chain_tools.py` and the follow-up gate in `modrag_cli.py`.
+- If the tool should be run as a follow-up to another tool (or should trigger one), wire it into `code/chain_tools.py` and the follow-up gate in `code/modrag_cli.py`.
 
 That should be it! The decision model should be able to select for and deploy the new function.
 

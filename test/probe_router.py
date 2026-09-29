@@ -5,7 +5,11 @@ Variants: raw state + example-criteria (current), entity-state, short rewritten 
 import json
 import sys
 
-sys.path.insert(0, 'code_new')
+import os
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_HERE, '..', 'code'))
+os.chdir(os.path.join(_HERE, '..', 'code'))
 
 from opendecider import load, Choice
 from opendecider.questions import as_dict

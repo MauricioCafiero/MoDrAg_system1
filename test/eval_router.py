@@ -5,9 +5,12 @@ training-like, so labels here deliberately use different phrasings/things).
 Usage: python eval_router.py [--sys1]
 '''
 import argparse
+import os
 import sys
 
-sys.path.insert(0, 'code_new')
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_HERE, '..', 'code'))
+os.chdir(os.path.join(_HERE, '..', 'code'))
 
 import input_parsing as ip
 from decision_layer import DecisionEngine, DECISION_MODEL_ID

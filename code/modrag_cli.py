@@ -12,8 +12,9 @@ input-parsing/intake flow, replaced as follows:
   - chat LLM interpretation -> none; tool output is rendered directly
 No autoregressive LLM is consulted for routing or responses.
 
-Run from the repo root (the tool library lives in code_new/, or set
-MODRAG_CODE_PATH / pass --code-path to point elsewhere).
+Run from inside code/ — or from anywhere via the `modrag` shell
+function installed by `bash setup_alias.sh` (it cds into code/ in a
+subshell, so the tools' repo-root-relative writes always land right).
 '''
 import argparse
 import os
@@ -44,8 +45,6 @@ import numpy as np
 from rich.console import Console
 from rich.markdown import Markdown
 
-sys.path.insert(0, os.environ.get('MODRAG_CODE_PATH', 'code_new'))
-
 import input_parsing as ip
 from decision_layer import DecisionEngine, DECISION_MODEL_ID
 from sys1_router import sys1_intake, sys1_second_intake, start_embedding_cached
@@ -53,11 +52,8 @@ import chain_tools
 import modrag_memory
 from modrag_memory import save_session, recall_session, list_sessions
 
-# all artifact dirs sit at the repo root (the tool modules use `../X` paths
-# because MoDrAg runs from its code/ subdir; patch their base before use)
-VAULT_DIR = 'vault'
-modrag_memory.PDB_DIR = 'pdb_files'
-modrag_memory.SCRATCH_DIR = 'scratch'
+# the session vault sits at the repo root (../vault from code/, as in MoDrAg)
+VAULT_DIR = '../vault'
 
 console = Console()
 
@@ -391,6 +387,13 @@ class Sys1Agent:
 
 
 def main():
+  # the tool modules resolve ../images, ../scratch, ../vault, ../pdb_files
+  # and ../data relative to this code/ directory — self-heal the CWD so
+  # the CLI runs correctly from anywhere (fresh clones get the runtime
+  # dirs created here, since none of them are committed)
+  os.chdir(os.path.dirname(os.path.abspath(__file__)))
+  for _d in ('../images', '../outputs', '../pdb_files', '../scratch', '../vault'):
+    os.makedirs(_d, exist_ok=True)
   ap = argparse.ArgumentParser(description='MoDrAg_sys1 CLI')
   ap.add_argument('--router', choices=['sys1', 'embedding'], default='sys1',
                   help='tool router: System 1 decision model (default) or the original embedding argmax')

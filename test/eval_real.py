@@ -8,16 +8,19 @@ Routers compared: embedding argmax, System 1 fused (one stage), two-stage fused.
 Usage: python eval_real.py [embedding|sys1|sys1_2stage|all]
 '''
 import json
+import os
 import sys
 
-sys.path.insert(0, 'code_new')
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_HERE, '..', 'code'))
+os.chdir(os.path.join(_HERE, '..', 'code'))
 
 import numpy as np
 import input_parsing as ip
 from decision_layer import DecisionEngine, DECISION_MODEL_ID
 from sys1_router import route, start_embedding_cached
 
-QUERIES = json.load(open('real_queries.json'))
+QUERIES = json.load(open(os.path.join(os.path.dirname(__file__), 'real_queries.json')))
 
 
 def expected_list(row):
