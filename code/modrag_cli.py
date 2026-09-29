@@ -45,6 +45,7 @@ if os.environ.get('HF_HUB_OFFLINE') is None:
 import numpy as np
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.text import Text
 
 import input_parsing as ip
 from decision_layer import DecisionEngine, DECISION_MODEL_ID
@@ -255,7 +256,14 @@ class Sys1Agent:
       self.reset_chat()
       return
     print('')
-    console.print(safe_markdown(results_string))
+    # the response text is the tool's own formatted block (one property per
+    # line etc.): render it as rich Text so the line structure survives and
+    # long lines wrap at the console width — Markdown was merging those
+    # lines into one paragraph and re-wrapping them at random points (and,
+    # before safe_markdown, a trailing "===" separator promoted the whole
+    # block to a centered h1). The nodes' own stdout (tool name header
+    # lines etc.) stays raw, as before.
+    console.print(Text(results_string.rstrip()))
     print('')
     self.tools_run.append(tool_key)
     self.messages.append({'role': 'tool', 'tool_name': tool_key,
