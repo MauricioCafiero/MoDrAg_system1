@@ -1,0 +1,16 @@
+ollama
+rdkit
+pubchempy
+pandas
+requests
+chembl_webresource_client
+rcsb-api
+dockstring
+openbabel-wheel
+scikit-learn
+scipy
+numpy
+lightgbm
+rich
+pillow
+torch
