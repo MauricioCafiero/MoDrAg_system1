@@ -18,6 +18,7 @@ subshell, so the tools' repo-root-relative writes always land right).
 '''
 import argparse
 import os
+import re
 import sys
 import time
 import warnings
@@ -56,6 +57,28 @@ from modrag_memory import save_session, recall_session, list_sessions
 VAULT_DIR = '../vault'
 
 console = Console()
+
+_SETETH_SEP = re.compile(r'[=\-]{3,}')
+
+
+def safe_markdown(text: str) -> Markdown:
+  '''Markdown-render free-form tool output.
+
+  A node's separator lines (e.g. lipinski_node's trailing
+  "===================") are valid Markdown *setext heading* syntax when
+  they follow a text line: "===" turns the whole preceding paragraph into
+  an h1, which rich renders centered — the wrapped property lines come
+  out looking centered. Inserting a blank line before such a separator
+  detaches it from the paragraph, so it renders as the plain separator
+  characters it was meant to be.
+  '''
+  lines = text.split('\n')
+  out = []
+  for line in lines:
+    if out and out[-1].strip() and _SETETH_SEP.fullmatch(line.strip()):
+      out.append('')
+    out.append(line)
+  return Markdown('\n'.join(out))
 
 # the entity lists the router parses (order matches parse_input's present dict)
 ENTITY_ATTRS = ('proteins_list', 'names_list', 'diseases_list', 'smiles_list',
@@ -232,7 +255,7 @@ class Sys1Agent:
       self.reset_chat()
       return
     print('')
-    console.print(Markdown(results_string))
+    console.print(safe_markdown(results_string))
     print('')
     self.tools_run.append(tool_key)
     self.messages.append({'role': 'tool', 'tool_name': tool_key,
@@ -463,7 +486,7 @@ def main():
           console.print(Markdown(f'No saved session matches `{which}`. '
                                  'Type `recall` alone to list them.'))
         else:
-          console.print(Markdown(text.strip()[:4000]))
+          console.print(safe_markdown(text.strip()[:4000]))
       continue
     elif query == '':
       continue
