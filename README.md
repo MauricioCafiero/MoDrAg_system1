@@ -65,9 +65,9 @@ python3 -m venv .venv
 pip install -r requirements.txt
 ```
 
-Then run the agent — easiest is the `modrag` shell function, which `setup_alias.sh` installs (`bash setup_alias.sh`); it cds into `code/` in a subshell so the CWD-relative writes always land right:
+Then run the agent — easiest is the `modragsys1` shell function, which `setup_alias.sh` installs (`bash setup_alias.sh`); it cds into `code/` in a subshell so the CWD-relative writes always land right. Named after the original CLI (`modrag`, which stays free for [MoDrAg_CLI](https://github.com/MauricioCafiero/MoDrAg) so both can be installed side by side):
 ```
-modrag
+modragsys1
 ```
 or directly:
 ```
@@ -122,7 +122,7 @@ Metrics: fraction of queries where the expected tool is ranked 1st; where all ex
 
 ## Repo layout
 ```
-setup_alias.sh           # installs the `modrag` shell function into your shell config
+setup_alias.sh           # installs the `modragsys1` shell function into your shell config
 requirements.txt         # full dependency list
 code/                    # the CLI + System 1 router + the tool library (nodes)
   modrag_cli.py                  # the command-line REPL (entry point)

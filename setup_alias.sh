@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# Install a `modragsys1` shell function for MoDrAg System 1.
+#
+# The command name is deliberately NOT `modrag`: that name belongs to
+# MoDrAg_CLI (MauricioCafiero/MoDrAg), whose own setup_alias.sh defines
+# a `modrag()` function whose cleanup sed (~ /^modrag()/d,
+# ^unalias modrag/d) removes any `modrag` definition it finds. If both
+# installers used the name, whichever ran last would silently break the
+# other one. With `modragsys1` here, both agents can be installed and
+# coexist: `modrag` runs MoDrAg_CLI, `modragsys1` runs System 1. (That
+# cleanup pattern is a prefix match, so re-running MoDrAg_CLI's
+# installer can still drop our `unalias modragsys1` guard line —
+# harmless, it only loses stale-alias cleanup, never the function.)
+
 # Find the absolute path of the MoDrAg_SYS1 directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -34,14 +47,22 @@ add_alias_to_file() {
     echo "Created $config_file"
   fi
 
-  # Remove any prior modrag definition — an old `alias modrag=`, the
-  # `unalias modrag` guard, or a `modrag()` function (single-line form
-  # written by this script).
-  if grep -qE "^(alias modrag=|unalias modrag|modrag\(\))" "$config_file"; then
-    echo "Existing modrag definition found in $config_file — replacing it"
-    sed -i '' -e '/alias modrag=/d' -e '/^unalias modrag/d' -e '/^modrag()/d' "$config_file" \
-      || sed -i -e '/alias modrag=/d' -e '/^unalias modrag/d' -e '/^modrag()/d' "$config_file"
-  fi
+  # Remove any previous definition written by this script (identified
+  # by this script's cd path) or inside its own marker block, so
+  # re-running it updates the path instead of accumulating entries.
+  # Foreign definitions (MoDrAg_CLI's `modrag`, hand-written aliases)
+  # are never touched.
+  local tmp
+  tmp="${config_file}.modragtmp.$$"
+  awk -v sd="$SCRIPT_DIR" '
+    /^# >>> modragsys1 >>>$/ {skip=1; next}
+    /^# <<< modragsys1 <<<$/ {skip=0; next}
+    skip==1 {next}
+    (/modragsys1\(\)/ && $0 ~ sd) {next}
+    (/alias modragsys1=/ && $0 ~ sd) {next}
+    (/unalias modragsys1/ && !guard) {guard=1; next}
+    {print}
+  ' "$config_file" > "$tmp" && cat "$tmp" > "$config_file" && rm -f "$tmp"
 
   # Add the new definition as a shell FUNCTION that cds into code/ in a
   # subshell before running. This is required because modrag_cli.py and
@@ -49,14 +70,19 @@ add_alias_to_file() {
   # ../vault, ../pdb_files, ../data) that only resolve correctly when
   # CWD is code/. The subshell ( ... ) means the cd is discarded when
   # the CLI exits, so the user's terminal stays put. The leading
-  # `unalias modrag 2>/dev/null` clears any stale alias left in a live
-  # shell from the old `alias modrag=` form; without it, re-sourcing
-  # the config triggers "defining function based on alias `modrag'".
-  echo "unalias modrag 2>/dev/null" >> "$config_file"
-  echo "modrag() { ( cd '$SCRIPT_DIR/code' && '$PYTHON' modrag_cli.py \"\$@\" ); }" >> "$config_file"
+  # `unalias` clears any stale alias left in a live shell from an old
+  # `alias modragsys1=` form; without it, re-sourcing the config
+  # triggers "defining function based on alias `modragsys1'". The
+  # `f` flag keeps just the first such guard line.
+  {
+    echo "# >>> modragsys1 >>>"
+    echo "unalias modragsys1 2>/dev/null"
+    echo "modragsys1() { ( cd '$SCRIPT_DIR/code' && '$PYTHON' modrag_cli.py \"\$@\" ); }"
+    echo "# <<< modragsys1 <<<"
+  } >> "$config_file"
 
-  echo "Added modrag function to $config_file:"
-  echo "  modrag() { ( cd '$SCRIPT_DIR/code' && '$PYTHON' modrag_cli.py \"\$@\" ); }"
+  echo "Added modragsys1() function to $config_file:"
+  echo "  modragsys1() { ( cd '$SCRIPT_DIR/code' && '$PYTHON' modrag_cli.py \"\$@\" ); }"
 }
 
 # Apply to detected shell's config file
@@ -77,4 +103,4 @@ else
 fi
 
 echo ""
-echo "You can now use 'modrag' from anywhere to run MoDrAg System 1!"
+echo 'You can now use `modragsys1` from anywhere to run MoDrAg System 1 (`modrag`, if you also installed MoDrAg_CLI, runs MoDrAg_CLI).'
