@@ -1,4 +1,4 @@
-<img src="https://github.com/MauricioCafiero/MauricioCafiero.github.io/blob/main/images/comp_chem_2_small.jpg" height="200" align="top" style="height:240px">
+<img src="https://github.com/MauricioCafiero/MoDrAg_system1/blob/main/images/modragsys1.png" alt="The MoDrAg System 1 CLI banner" style="height:240px">
 
 # MoDrAg System 1
 MoDrAg's drug-design tool library on the command line, driven by **no autoregressive LLM anywhere in the control flow**. Every tool selection, confirmation, missing-data request, and follow-up is decided by a small local decision model ([opendecider-nano](https://huggingface.co/manjunathshiva/opendecider-nano), ~400M parameters) fused with an embedding scorer — the entire routing stack runs on a laptop.
