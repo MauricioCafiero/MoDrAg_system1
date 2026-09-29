@@ -12,7 +12,8 @@ input-parsing/intake flow, replaced as follows:
   - chat LLM interpretation -> none; tool output is rendered directly
 No autoregressive LLM is consulted for routing or responses.
 
-Run from the directory containing repo/ (or pass --code-path).
+Run from the repo root (the tool library lives in code_new/, or set
+MODRAG_CODE_PATH / pass --code-path to point elsewhere).
 '''
 import argparse
 import os
